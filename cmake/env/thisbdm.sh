@@ -362,7 +362,7 @@ else
         module load mpi
 
         # load llvm 6 required for libroadrunner
-        if ! [ -z ${BDMSYS}/third_party/libroadrunner ]; then
+        if [ -d ${BDMSYS}/third_party/libroadrunner ]; then
           . scl_source enable llvm-toolset-6.0
         fi
     fi

@@ -16,8 +16,11 @@
 
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
+#include "core/parallel_execution/util.h"
+#include "core/parallel_execution/xml_util.h"
 #include "core/util/random.h"
 #include "core/util/root.h"
 
@@ -67,6 +70,8 @@ class Simulation {
              const std::function<void(Param*)>& set_param,
              const std::string& config_file = "");
 
+  Simulation(int argc, const char** argv, XMLParams* xml_params);
+
   Simulation(const std::string& simulation_name,
              const std::function<void(Param*)>& set_param,
              const std::string& config_file = "");
@@ -85,6 +90,8 @@ class Simulation {
   void SetResourceManager(ResourceManager* rm);
 
   const Param* GetParam() const;
+
+  const XMLParamMap GetXMLParam() const;
 
   Grid* GetGrid();
 
@@ -146,7 +153,8 @@ class Simulation {
   /// Initialize Simulation
   void Initialize(CommandLineOptions* clo,
                   const std::function<void(Param*)>& set_param,
-                  const std::string& ctor_config);
+                  const std::string& ctor_config,
+                  XMLParams* xml_params = nullptr);
 
   /// Initialize data members that have a dependency on Simulation
   void InitializeMembers();
@@ -154,7 +162,8 @@ class Simulation {
   /// This function parses command line parameters and the configuration file.
   void InitializeRuntimeParams(CommandLineOptions* clo,
                                const std::function<void(Param*)>& set_param,
-                               const std::string& ctor_config);
+                               const std::string& ctor_config,
+                               XMLParams* xml_params = nullptr);
 
   void LoadConfigFile(const std::string& ctor_config,
                       const std::string& cli_config);

@@ -23,6 +23,7 @@
 #include <vector>
 #include "core/execution_context/in_place_exec_ctxt.h"
 #include "core/grid.h"
+#include "core/parallel_execution/xml_parser.h"
 #include "core/param/command_line_options.h"
 #include "core/param/param.h"
 #include "core/resource_manager.h"
@@ -65,6 +66,10 @@ Simulation::Simulation(CommandLineOptions* clo,
                        const std::function<void(Param*)>& set_param,
                        const std::string& config_file) {
   Initialize(clo, set_param, config_file);
+}
+
+Simulation::Simulation(int argc, const char** argv, XMLParams* xml_params) {
+  Initialize(argc, argv, [](auto* param) {}, "", xml_params);
 }
 
 Simulation::Simulation(int argc, const char** argv,
@@ -146,6 +151,10 @@ void Simulation::SetResourceManager(ResourceManager* rm) {
 /// Returns the simulation parameters
 const Param* Simulation::GetParam() const { return param_; }
 
+const XMLParamMap Simulation::GetXMLParam() const {
+  return param_->GetXMLParam();
+}
+
 Grid* Simulation::GetGrid() { return grid_; }
 
 Scheduler* Simulation::GetScheduler() { return scheduler_; }
@@ -178,7 +187,8 @@ void Simulation::ReplaceScheduler(Scheduler* scheduler) {
 
 void Simulation::Initialize(CommandLineOptions* clo,
                             const std::function<void(Param*)>& set_param,
-                            const std::string& config_file) {
+                            const std::string& config_file,
+                            XMLParams* xml_params) {
   id_ = counter_++;
   Activate();
   if (!clo) {
@@ -186,7 +196,7 @@ void Simulation::Initialize(CommandLineOptions* clo,
                "CommandLineOptions argument was a nullptr!");
   }
   InitializeUniqueName(clo->GetSimulationName());
-  InitializeRuntimeParams(clo, set_param, config_file);
+  InitializeRuntimeParams(clo, set_param, config_file, xml_params);
   InitializeOutputDir();
   InitializeMembers();
 }
@@ -213,7 +223,7 @@ void Simulation::InitializeMembers() {
 
 void Simulation::InitializeRuntimeParams(
     CommandLineOptions* clo, const std::function<void(Param*)>& set_param,
-    const std::string& ctor_config) {
+    const std::string& ctor_config, XMLParams* xml_params) {
   // Renew thread info just in case it has been initialised as static and a
   // simulation calls e.g. `omp_set_num_threads()` within main.
   ThreadInfo::GetInstance()->Renew();
@@ -233,6 +243,11 @@ void Simulation::InitializeRuntimeParams(
   }
   if (clo->Get<std::string>("restore") != "") {
     param_->restore_file_ = clo->Get<std::string>("restore");
+  }
+
+  if (clo->Get<std::string>("xml") != "") {
+    XMLParser xp(clo->Get<std::string>("xml"));
+    param_->SetXMLParams(xp.CreateMap(xml_params));
   }
 
   set_param(param_);
@@ -265,8 +280,7 @@ void Simulation::LoadConfigFile(const std::string& ctor_config,
     } else {
       Log::Fatal("Simulation::InitializeRuntimeParams", "The config file ",
                  cli_config,
-                 " specified as command line argument "
-                 "could not be found.");
+                 " specified as command line argument could not be found.");
     }
   } else if (FileExists(kConfigFile)) {
     auto config = cpptoml::parse_file(kConfigFile);
