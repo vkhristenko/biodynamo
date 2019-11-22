@@ -25,4 +25,5 @@ valgrind \
   --show-reachable=no \
   --suppressions=${BDM_PROJECT_DIR}/util/valgrind-bdm.supp \
   --error-exitcode=1 \
-  $@
+  --num-callers=25 \
+$@
