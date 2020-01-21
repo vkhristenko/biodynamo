@@ -19,9 +19,13 @@
 // detail when using ROOT I/O
 #if defined(USE_CATALYST) && !defined(__ROOTCLING__)
 
+#include <array>
+#include <cstdio>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
+
 #include "core/param/param.h"
 #include "core/shape.h"
 #include "core/sim_object/sim_object.h"
@@ -40,6 +44,23 @@
 
 namespace bdm {
 
+// Adapted from: https://stackoverflow.com/a/478960/4412753
+inline std::string exec(const char* cmd) {
+  // Redirect stderr to stdout
+  std::string cmd_str = std::string(cmd) + " 2>&1";
+  std::array<char, 128> buffer;
+  std::string result;
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd_str.c_str(), "r"),
+                                                pclose);
+  if (!pipe) {
+    throw std::runtime_error("ParaviewHelper::exec : popen() failed!");
+  }
+  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+    result += buffer.data();
+  }
+  return result;
+}
+
 /// Add data member `time_step_` to a vtkDataArray.
 /// It is required to determine when the data array should be reset. (At the
 /// beginning of each iteration)
@@ -52,8 +73,7 @@ struct VtkDataArrayWrapper {
 /// Adds additional data members to the `vtkUnstructuredGrid` required by
 /// `CatalystAdaptor` to visualize simulation objects.
 struct VtkSoGrid {
-  VtkSoGrid(const char* type_name,
-            const vtkNew<vtkCPDataDescription>& data_description) {
+  VtkSoGrid(const char* type_name, vtkCPDataDescription* data_description) {
     data_ = vtkUnstructuredGrid::New();
     name_ = type_name;
     data_description->AddInput(type_name);
@@ -92,7 +112,7 @@ struct VtkSoGrid {
 /// `CatalystAdaptor` to visualize diffusion grid.
 struct VtkDiffusionGrid {
   VtkDiffusionGrid(const std::string& name,
-                   const vtkNew<vtkCPDataDescription>& data_description) {
+                   vtkCPDataDescription* data_description) {
     data_ = vtkImageData::New();
     name_ = name;
 

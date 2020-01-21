@@ -246,6 +246,12 @@ void Simulation::InitializeRuntimeParams(
     param_->restore_file_ = clo->Get<std::string>("restore");
   }
 
+  if (clo->Get<bool>("visualize")) {
+    param_->export_visualization_ = true;
+    param_->visualization_export_interval_ =
+        clo->Get<uint32_t>("vis-frequency");
+  }
+
   if (clo->Get<std::string>("xml") != "") {
     XMLParser xp(clo->Get<std::string>("xml"));
     param_->SetXMLParams(xp.CreateMap(xml_params));

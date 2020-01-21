@@ -150,27 +150,28 @@ class CatalystAdaptor {
     exclusive_export_viz_ =
         param->export_visualization_ && !param->live_visualization_;
     if (param->live_visualization_ || param->export_visualization_) {
-      if (g_processor_ == nullptr) {
-        g_processor_ = vtkCPProcessor::New();
-        g_processor_->Initialize();
+      if (param->live_visualization_) {
+        if (g_processor_ == nullptr) {
+          g_processor_ = vtkCPProcessor::New();
+          g_processor_->Initialize();
+        }
+
+        if (g_processor_->GetNumberOfPipelines() != 0) {
+          Log::Fatal("CatalystAdaptor",
+                     "Live visualization does not support multiple "
+                     "simulations. Turning off live visualization for ",
+                     sim->GetUniqueName());
+        } else if (param->python_catalyst_pipeline_) {
+          vtkNew<vtkCPPythonScriptPipeline> pipeline;
+          pipeline->Initialize(python_script_.c_str());
+          g_processor_->AddPipeline(pipeline.GetPointer());
+        } else if (!exclusive_export_viz_) {
+          pipeline_ = new InSituPipeline();
+          g_processor_->AddPipeline(pipeline_);
+        }
       }
 
-      if (param->live_visualization_ &&
-          g_processor_->GetNumberOfPipelines() != 0) {
-        Log::Fatal("CatalystAdaptor",
-                   "Live visualization does not support multiple "
-                   "simulations. Turning off live visualization for ",
-                   sim->GetUniqueName());
-      } else if (param->python_catalyst_pipeline_) {
-        vtkNew<vtkCPPythonScriptPipeline> pipeline;
-        pipeline->Initialize(python_script_.c_str());
-        g_processor_->AddPipeline(pipeline.GetPointer());
-      } else if (!exclusive_export_viz_) {
-        pipeline_ = new InSituPipeline();
-        g_processor_->AddPipeline(pipeline_);
-      }
-
-      vtkNew<vtkCPDataDescription> data_description;
+      vtkCPDataDescription* data_description = vtkCPDataDescription::New();
       data_description->SetTimeData(0, 0);
 
       auto* param = Simulation::GetActive()->GetParam();
@@ -182,6 +183,7 @@ class CatalystAdaptor {
         vtk_dgrids_[entry.name_] =
             new VtkDiffusionGrid(entry.name_, data_description);
       }
+      data_description->Delete();
     }
   }
 
@@ -192,7 +194,7 @@ class CatalystAdaptor {
   /// @param[in]  last_time_step  Last time step or not
   ///
   void LiveVisualization(double time, size_t step, bool last_time_step) {
-    vtkNew<vtkCPDataDescription> data_description;
+    vtkCPDataDescription* data_description = vtkCPDataDescription::New();
     data_description->SetTimeData(time, step);
 
     CreateVtkObjects(data_description);
@@ -207,7 +209,8 @@ class CatalystAdaptor {
       }
     }
 
-    g_processor_->CoProcess(data_description.GetPointer());
+    g_processor_->CoProcess(data_description);
+    data_description->Delete();
   }
 
   /// Exports the visualized objects to file, so that they can be imported and
@@ -219,15 +222,7 @@ class CatalystAdaptor {
   ///
   inline void ExportVisualization(double time, size_t step,
                                   bool last_time_step) {
-    vtkNew<vtkCPDataDescription> data_description;
-    data_description->SetTimeData(time, step);
-
-    CreateVtkObjects(data_description);
-
-    if (last_time_step == true) {
-      data_description->ForceOutputOn();
-    }
-
+    CreateVtkObjects();
     WriteToFile(step);
   }
 
@@ -236,7 +231,7 @@ class CatalystAdaptor {
   /// @param      data_description  The data description
   ///
   void CreateVtkObjects(
-      const vtkNew<vtkCPDataDescription>& data_description) {  // NOLINT
+      vtkCPDataDescription* data_description = nullptr) {  // NOLINT
     BuildSimObjectsVTKStructures(data_description);
     BuildDiffusionGridVTKStructures(data_description);
   }
@@ -246,7 +241,7 @@ class CatalystAdaptor {
 
   // Process a single simulation object
   void ProcessSimObject(const SimObject* so,
-                        const vtkNew<vtkCPDataDescription>& data_description) {
+                        vtkCPDataDescription* data_description) {
     auto* param = Simulation::GetActive()->GetParam();
     auto so_name = so->GetTypeName();
 
@@ -264,8 +259,7 @@ class CatalystAdaptor {
       // We do not need to RequestDataDescription in Export Mode, because
       // we do not make use of Catalyst CoProcessing capabilities
       if (exclusive_export_viz_ ||
-          (g_processor_->RequestDataDescription(
-              data_description.GetPointer())) != 0) {
+          (g_processor_->RequestDataDescription(data_description)) != 0) {
         CatalystSoVisitor visitor(vsg);
         so->ForEachDataMemberIn(vsg->vis_data_members_, &visitor);
       }
@@ -273,8 +267,7 @@ class CatalystAdaptor {
   }
 
   /// Create the required vtk objects to visualize simulation objects.
-  void BuildSimObjectsVTKStructures(
-      const vtkNew<vtkCPDataDescription>& data_description) {
+  void BuildSimObjectsVTKStructures(vtkCPDataDescription* data_description) {
     auto* rm = Simulation::GetActive()->GetResourceManager();
 
     rm->ApplyOnAllElements(
@@ -285,9 +278,8 @@ class CatalystAdaptor {
   // diffusion grids
 
   /// Sets the properties of the diffusion VTK grid structures
-  void ProcessDiffusionGrid(
-      const DiffusionGrid* grid,
-      const vtkNew<vtkCPDataDescription>& data_description) {
+  void ProcessDiffusionGrid(const DiffusionGrid* grid,
+                            vtkCPDataDescription* data_description) {
     auto* param = Simulation::GetActive()->GetParam();
     auto name = grid->GetSubstanceName();
 
@@ -310,8 +302,7 @@ class CatalystAdaptor {
       // We do not need to RequestDataDescription in Export Mode, because
       // we do not make use of Catalyst CoProcessing capabilities
       if (exclusive_export_viz_ ||
-          (g_processor_->RequestDataDescription(
-              data_description.GetPointer())) != 0) {
+          (g_processor_->RequestDataDescription(data_description)) != 0) {
         auto num_boxes = grid->GetNumBoxesArray();
         auto grid_dimensions = grid->GetDimensions();
         auto box_length = grid->GetBoxLength();
@@ -339,8 +330,7 @@ class CatalystAdaptor {
   }
 
   /// Create the required vtk objects to visualize diffusion grids.
-  void BuildDiffusionGridVTKStructures(
-      const vtkNew<vtkCPDataDescription>& data_description) {
+  void BuildDiffusionGridVTKStructures(vtkCPDataDescription* data_description) {
     auto* rm = Simulation::GetActive()->GetResourceManager();
 
     rm->ApplyOnAllDiffusionGrids([&](DiffusionGrid* grid) {
@@ -500,12 +490,14 @@ class CatalystAdaptor {
     python_cmd << bdm_src_dir << "/../third_party/paraview/bin/pvpython "
                << bdm_src_dir << "/core/visualization/generate_pv_state.py "
                << sim->GetOutputDir() << "/" << kSimulationInfoJson;
-    int ret_code = system(python_cmd.str().c_str());
-    if (ret_code) {
-      Log::Fatal("CatalystAdaptor::GenerateParaviewState",
-                 "Error during generation of ParaView state\n", "Command\n",
-                 python_cmd.str());
-    }
+    
+    std::string output = exec(python_cmd.str().c_str());
+    Log::Info("CatalystAdaptor::GenerateParaviewState", output);
+    // if (ret_code) {
+    //   Log::Fatal("CatalystAdaptor::GenerateParaviewState",
+    //              "Error during generation of ParaView state\n", "Command\n",
+    //              python_cmd.str());
+    // }
   }
 };
 
