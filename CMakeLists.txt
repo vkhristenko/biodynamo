@@ -149,7 +149,11 @@ find_package(pip)
 
 # You need to specify CC and CXX to point to MPI compilers
 find_package(MPI)
-if(NOT MPI_FOUND)
+if(MPI_FOUND)
+  execute_process(COMMAND ${CMAKE_CXX_COMPILER} mpic++ --showme:incdirs
+                  OUTPUT_VARIABLE MPI_INCLUDE_PATH)
+  include_directories(${MPI_INCLUDE_PATH})
+else()
   MESSAGE(FATAL_ERROR "We did not find any OpenMPI installation. Please run ./prerequisites.sh again before
   calling cmake. The OpenMPI library is required in order to successfully use BioDynaMo." )
 endif()
@@ -222,13 +226,13 @@ if ("$ENV{CMAKE_EXPORT_COMPILE_COMMANDS}" STREQUAL "1" OR CLANG_TIDY_FOUND)
   set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 endif()
 
-find_package(Numa)
-if (NUMA_FOUND)
-   include_directories(${NUMA_INCLUDE_DIR})
-   link_directories(${NUMA_LIBRARY_DIR})
-   add_definitions("-DUSE_NUMA")
-   set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${NUMA_LIBRARIES})
-endif()
+# find_package(Numa)
+# if (NUMA_FOUND)
+#    include_directories(${NUMA_INCLUDE_DIR})
+#    link_directories(${NUMA_LIBRARY_DIR})
+#    add_definitions("-DUSE_NUMA")
+#    set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${NUMA_LIBRARIES})
+# endif()
 
 if(paraview)
     # If we specify a custom location for ParaView then we need to specify also a custom location

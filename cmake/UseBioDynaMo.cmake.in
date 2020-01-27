@@ -114,7 +114,11 @@ endif()
 
 # You need to specify CC and CXX to point to MPI compilers
 find_package(MPI)
-if (NOT MPI_FOUND)
+if(MPI_FOUND)
+  execute_process(COMMAND ${MPI_CXX_COMPILER} --showme:incdirs
+                  OUTPUT_VARIABLE MPI_INCLUDE_PATH)
+  include_directories(${MPI_INCLUDE_PATH})
+else()
   MESSAGE(FATAL_ERROR "We did not find any OpenMPI installation. Please run ./prerequisites.sh again before
   calling cmake. The OpenMPI library is required in order to successfully use BioDynaMo." )
 endif()
@@ -140,13 +144,13 @@ if (paraview)
     find_package(GLUT)
 endif()
 
-find_package(Numa REQUIRED)
-if (NUMA_FOUND)
-   include_directories(${NUMA_INCLUDE_DIR})
-   link_directories(${NUMA_LIBRARY_DIR})
-   add_definitions("-DUSE_NUMA")
-   set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${NUMA_LIBRARIES})
-endif()
+# find_package(Numa REQUIRED)
+# if (NUMA_FOUND)
+#    include_directories(${NUMA_INCLUDE_DIR})
+#    link_directories(${NUMA_LIBRARY_DIR})
+#    add_definitions("-DUSE_NUMA")
+#    set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${NUMA_LIBRARIES})
+# endif()
 
 if(paraview)
   find_package(ParaView 5.3 QUIET OPTIONAL_COMPONENTS vtkPVPythonCatalyst)

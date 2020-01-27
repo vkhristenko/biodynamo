@@ -359,7 +359,6 @@ else
         . scl_source enable python27
 
         . /etc/profile.d/modules.sh
-        module load mpi
 
         # load llvm 6 required for libroadrunner
         if [ -d ${BDMSYS}/third_party/libroadrunner ]; then
