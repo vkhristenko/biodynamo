@@ -487,11 +487,12 @@ class CatalystAdaptor {
     std::stringstream python_cmd;
     std::string bdm_src_dir = std::getenv("BDM_SRC_DIR");
 
-    python_cmd << bdm_src_dir << "/../third_party/paraview/bin/pvpython "
+    python_cmd << bdm_src_dir << "/../third_party/paraview/bin/pvbatch --no-mpi "
                << bdm_src_dir << "/core/visualization/generate_pv_state.py "
                << sim->GetOutputDir() << "/" << kSimulationInfoJson;
     
     std::string output = exec(python_cmd.str().c_str());
+    Log::Info("CatalystAdaptor::GenerateParaviewState", python_cmd.str());
     Log::Info("CatalystAdaptor::GenerateParaviewState", output);
     // if (ret_code) {
     //   Log::Fatal("CatalystAdaptor::GenerateParaviewState",
