@@ -29,8 +29,10 @@ VisualizationAdaptor *VisualizationAdaptor::Create(std::string adaptor) {
   std::string bdm_src_dir = std::string(std::getenv("BDM_SRC_DIR"));
   if ((h = gPluginMgr->FindHandler("VisualizationAdaptor", adaptor.c_str()))) {
     if (h->LoadPlugin() == -1) {
+#ifndef __ROOTCLING__
       Log::Error("VisualizationAdaptor::Create", "Was unable to load plugin '",
                  adaptor, "'!");
+#endif
       return nullptr;
     }
     va = (VisualizationAdaptor *)h->ExecPlugin(0);

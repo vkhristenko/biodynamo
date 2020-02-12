@@ -247,6 +247,11 @@ function(install_inside_build)
             GLOB "*"
             )
     add_copy_directory(copy_files_bdm
+            ${CMAKE_CURRENT_BINARY_DIR}/omp
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/omp
+            GLOB "*"
+            )
+    add_copy_directory(copy_files_bdm
             ${CMAKE_CURRENT_BINARY_DIR}/extracted-third-party-libs/mpark
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mpark
             GLOB "*"
