@@ -185,6 +185,11 @@ function(install_inside_build)
             )
 
     add_copy_files(copy_files_bdm
+            ${CMAKE_BINARY_DIR}/binder_rootlogon.C
+            DESTINATION ${CMAKE_INSTALL_ROOT}/etc
+            )
+
+    add_copy_files(copy_files_bdm
             DESTINATION ${CMAKE_INSTALL_BINDIR}
             ${CMAKE_BINARY_DIR}/version/version.py
             ${CMAKE_SOURCE_DIR}/util/makefile-build/bdm-code-generation

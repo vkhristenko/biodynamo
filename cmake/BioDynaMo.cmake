@@ -131,7 +131,6 @@ function(generate_rootlogon)
   if (dict)
     set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"#define USE_DICT\")\;")
   endif()
-
   set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"R__LOAD_LIBRARY(libbiodynamo)\")\;")
   # We add this one because the ROOT visualization require it, and it's not one
   # of the core libraries that is loaded by default in rootcling
@@ -147,14 +146,12 @@ function(generate_rootlogon)
   if (dict)
     set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"#define USE_DICT\")\;")
   endif()
-
   # Needed to avoid error that comes from conda-tbb
   set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"#define __GLIBC_USE(...) 0\")\;")
-  set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"R__LOAD_LIBRARY(libbiodynamo)\")\;")
   set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\".include /home/jovyan/biodynamo/include\")\;")
-  set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"R__LOAD_LIBRARY(GenVector)\")\;")
-  set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"R__LOAD_LIBRARY(/home/jovyan/biodynamo/third_party/root/lib/libGenVector.so)\")\;")
   set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"#include \\\"biodynamo.h\\\"\")\;")
+  set(CONTENT "${CONTENT}\n  gSystem->Load(\"${HOME}/biodynamo/lib/libbiodynamo.so\")\;")
+  set(CONTENT "${CONTENT}\n  gSystem->Load(\"${HOME}/biodynamo/third_party/root/lib/libGenVector.so\")\;")
   set(CONTENT "${CONTENT}\n  gROOT->ProcessLine(\"using namespace bdm\;\")\;")
   set(CONTENT "${CONTENT}\n}\n")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/binder_rootlogon.C" ${CONTENT})
