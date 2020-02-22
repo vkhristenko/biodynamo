@@ -240,54 +240,25 @@ if (NUMA_FOUND)
 endif()
 
 if(paraview)
-    # If we specify a custom location for ParaView then we need to specify also a custom location
-    # for Qt.
-    if ((DEFINED ENV{ParaView_DIR} AND NOT DEFINED ENV{Qt5_DIR}) OR (NOT DEFINED ENV{ParaView_DIR} AND DEFINED ENV{Qt5_DIR}))
-        MESSAGE(FATAL_ERROR "\nFATAL ERROR \nYou need to specify both ParaView_DIR and Qt5_DIR in order to build "
-                "BioDynaMo. This is needed only if you want to use your own versions of ParaView and Qt.")
-    endif()
-
-    # If Qt5_DIR is not set by the user, we will set it to the default directory
-    # where it's downloaded to. This is done in case the user runs CMake again,
-    # after which the find_package(ParaView) might complain that it can't find
-    # a compatible Qt5 installation
-    if(NOT DEFINED Qt5_DIR OR NOT DEFINED ${Qt5_DIR})
-      set(Qt5_DIR ${CMAKE_THIRD_PARTY_DIR}/qt/lib/cmake/Qt5)
-    endif()
-
     # Check the first time if ParaView exists in the system.
-    find_package(ParaView 5.3 OPTIONAL_COMPONENTS vtkPVPythonCatalyst
+    find_package(ParaView 5.3 REQUIRED OPTIONAL_COMPONENTS vtkPVPythonCatalyst
             vtkPVVTKExtensionsDefault vtkPVServerManagerRendering
             PATHS ${CMAKE_THIRD_PARTY_DIR}/paraview)
 
     # Check if ParaView was found in the system. If that's not the case then we will proceed
     # to download it.
     if(NOT ${ParaView_FOUND})
-      PRINT_WARNING()
-      MESSAGE("ParaView was not found in the system. Therefore it will be installed automatically now "
-              "together with Qt5.")
-      PRINT_LINE()
-
-      # If we did not found paraview then we will install it automatically
-      # with the Qt package.
-      include(external/Qt)
-      PRINT_LINE()
-      MESSAGE("Qt5 was successfully downloaded and installed. We will proceed now with ParaView.")
-      PRINT_LINE()
       include(external/ParaView)
 
-      # We run again the find_package command such to find correctly the location of Qt and ParaView
-      find_package(Qt5 COMPONENTS Widgets HINTS ${CMAKE_THIRD_PARTY_DIR}/qt/lib/cmake/Qt5 NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
-      if(Qt5_FOUND)
-        message("-- Found Qt5 (version ${Qt5_VERSION})")
-      endif()
+      # We run again the find_package command such to find correctly the location of ParaView
       find_package(ParaView 5.3 OPTIONAL_COMPONENTS vtkPVPythonCatalyst
               vtkPVVTKExtensionsDefault vtkPVServerManagerRendering
               PATHS ${CMAKE_THIRD_PARTY_DIR}/paraview)
     endif()
 
     # Add several ParaView related options
-    include("${PARAVIEW_USE_FILE}")
+    message("ParaView_LIBRARIES = ${ParaView_LIBRARIES}")
+    include_directories(${ParaView_PREFIX_PATH}/include/paraview-5.8)
     add_definitions("-DUSE_PARAVIEW")
 endif()
 
@@ -481,7 +452,7 @@ add_dependencies(bdmclean libbdmclean)
 generate_rootlogon()
 
 if(paraview)
-    include("${CMAKE_SOURCE_DIR}/paraview_plugin/bdm_glyph/CMakeLists.txt")
+    include("${CMAKE_SOURCE_DIR}/paraview_plugin/CMakeLists.txt")
 endif()
 
 # create cmake files used by external builds
