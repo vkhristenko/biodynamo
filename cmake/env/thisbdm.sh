@@ -369,7 +369,6 @@ if [[ $(uname -s) == "Darwin"* ]]; then
 
 else
     # CentOs specifics
-    if [ `lsb_release -si` == "CentOS" ]; then
         export MESA_GL_VERSION_OVERRIDE=3.3
         if [ -z ${CXX} ] && [ -z ${CC} ] ; then
             . scl_source enable devtoolset-7
@@ -381,7 +380,6 @@ else
         if ! [ -z ${BDMSYS}/third_party/libroadrunner ]; then
           . scl_source enable llvm-toolset-6.0
         fi
-    fi
 fi
 
 unset old_bdmsys

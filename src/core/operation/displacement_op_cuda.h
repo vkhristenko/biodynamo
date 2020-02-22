@@ -31,17 +31,86 @@
 
 namespace bdm {
 
+inline void IsNonSphericalObjectPresent(const SimObject* so, bool* answer) {
+    if (so->GetShape() != Shape::kSphere) {
+      *answer = true;
+    }
+  }
+
+struct Bar : public Functor<void, SimObject*, SoHandle> {
+
+bool bound_space = false;
+double min_bound = 0;
+double max_bound = 1;
+std::vector<std::array<double, 3>> cell_movements;
+
+	Bar(std::vector<std::array<double, 3>> cm, bool bs, double minb, double maxb) {
+	  cell_movements = cm;
+          bound_space = bs;
+	  min_bound = minb;
+	  max_bound = maxb;
+	}
+
+	void operator()(SimObject* so, SoHandle soh) override {
+		auto* cell = dynamic_cast<Cell*>(so);
+      auto idx = soh.GetElementIdx();
+      Double3 new_pos;
+      new_pos[0] = cell_movements[idx][0];
+      new_pos[1] = cell_movements[idx][1];
+      new_pos[2] = cell_movements[idx][2];
+      cell->UpdatePosition(new_pos);
+      if (bound_space) {
+        ApplyBoundingBox(so, min_bound, max_bound);
+      }
+
+	}
+
+};
+
+struct Foo : public Functor<void, SimObject*, SoHandle> {
+    bool is_non_spherical_object = false;
+    std::vector<Double3> cell_positions;
+    std::vector<double> cell_diameters;
+    std::vector<double> cell_adherence;
+    std::vector<Double3> cell_tractor_force;
+    std::vector<uint32_t> cell_boxid;
+    std::vector<double> mass;
+
+  Foo(uint32_t num_objects) {
+    cell_positions.resize(num_objects);
+    cell_diameters.resize(num_objects);
+	cell_adherence.resize(num_objects);
+	cell_tractor_force.resize(num_objects);
+	cell_boxid.resize(num_objects);
+	mass.resize(num_objects);
+  }
+
+  void operator()(SimObject* so, SoHandle soh) override {
+      // Check if there are any non-spherical objects in our simulation, because
+      // GPU accelerations currently supports only sphere-sphere interactions
+      IsNonSphericalObjectPresent(so, &is_non_spherical_object);
+      if (is_non_spherical_object) {
+        Log::Fatal("DisplacementOpCuda",
+                   "\nWe detected a non-spherical object during the GPU "
+                   "execution. This is currently not supported.");
+        return;
+      }
+      auto* cell = bdm_static_cast<Cell*>(so);
+      auto idx = soh.GetElementIdx();
+      mass[idx] = cell->GetMass();
+      cell_diameters[idx] = cell->GetDiameter();
+      cell_adherence[idx] = cell->GetAdherence();
+      cell_tractor_force[idx] = cell->GetTractorForce();
+      cell_positions[idx] = cell->GetPosition();
+      cell_boxid[idx] = cell->GetBoxIdx();
+    }
+};
+
 /// Defines the 3D physical interactions between physical objects
 class DisplacementOpCuda {
  public:
   DisplacementOpCuda() {}
   ~DisplacementOpCuda() {}
-
-  void IsNonSphericalObjectPresent(const SimObject* so, bool* answer) {
-    if (so->GetShape() != Shape::kSphere) {
-      *answer = true;
-    }
-  }
 
   void operator()() {
     auto* sim = Simulation::GetActive();
@@ -65,12 +134,6 @@ class DisplacementOpCuda {
     // a void pointer. The conversion of `const double *` to `void *` is
     // illegal.
     std::vector<std::array<double, 3>> cell_movements(num_objects);
-    std::vector<Double3> cell_positions(num_objects);
-    std::vector<double> cell_diameters(num_objects);
-    std::vector<double> cell_adherence(num_objects);
-    std::vector<Double3> cell_tractor_force(num_objects);
-    std::vector<uint32_t> cell_boxid(num_objects);
-    std::vector<double> mass(num_objects);
     std::vector<uint32_t> starts;
     std::vector<uint16_t> lengths;
     std::vector<uint32_t> successors(num_objects);
@@ -80,27 +143,8 @@ class DisplacementOpCuda {
     double squared_radius =
         grid->GetLargestObjectSize() * grid->GetLargestObjectSize();
 
-    bool is_non_spherical_object = false;
-
-    rm->ApplyOnAllElements([&](SimObject* so, SoHandle soh) {
-      // Check if there are any non-spherical objects in our simulation, because
-      // GPU accelerations currently supports only sphere-sphere interactions
-      IsNonSphericalObjectPresent(so, &is_non_spherical_object);
-      if (is_non_spherical_object) {
-        Log::Fatal("DisplacementOpCuda",
-                   "\nWe detected a non-spherical object during the GPU "
-                   "execution. This is currently not supported.");
-        return;
-      }
-      auto* cell = bdm_static_cast<Cell*>(so);
-      auto idx = soh.GetElementIdx();
-      mass[idx] = cell->GetMass();
-      cell_diameters[idx] = cell->GetDiameter();
-      cell_adherence[idx] = cell->GetAdherence();
-      cell_tractor_force[idx] = cell->GetTractorForce();
-      cell_positions[idx] = cell->GetPosition();
-      cell_boxid[idx] = cell->GetBoxIdx();
-    });
+    Foo f(num_objects);
+    rm->ApplyOnAllElementsParallelDynamic(1000, f);
 
     uint16_t numa_node = 0;  // GPU code only supports 1 NUMA domain currently
     for (size_t i = 0; i < grid->successors_.size(numa_node); i++) {
@@ -129,7 +173,7 @@ class DisplacementOpCuda {
       num_objects_ = new_num_objects;
       num_boxes_ = new_num_boxes;
 
-      // Allocate required GPU memory
+	// Allocate required GPU memory
       cdo_ = new DisplacementOpCudaKernel(new_num_objects, new_num_boxes);
     } else {
       // If the number of simulation objects increased
@@ -155,9 +199,9 @@ class DisplacementOpCuda {
     }
 
     cdo_->LaunchDisplacementKernel(
-        cell_positions.data()->data(), cell_diameters.data(),
-        cell_tractor_force.data()->data(), cell_adherence.data(),
-        cell_boxid.data(), mass.data(), &(param->simulation_time_step_),
+        f.cell_positions.data()->data(), f.cell_diameters.data(),
+        f.cell_tractor_force.data()->data(), f.cell_adherence.data(),
+        f.cell_boxid.data(), f.mass.data(), &(param->simulation_time_step_),
         &(param->simulation_max_displacement_), &squared_radius, &num_objects,
         starts.data(), lengths.data(), successors.data(), &box_length,
         num_boxes_axis.data(), grid_dimensions.data(),
@@ -166,18 +210,9 @@ class DisplacementOpCuda {
     // set new positions after all updates have been calculated
     // otherwise some cells would see neighbors with already updated positions
     // which would lead to inconsistencies
-    rm->ApplyOnAllElements([&](SimObject* so, SoHandle soh) {
-      auto* cell = dynamic_cast<Cell*>(so);
-      auto idx = soh.GetElementIdx();
-      Double3 new_pos;
-      new_pos[0] = cell_movements[idx][0];
-      new_pos[1] = cell_movements[idx][1];
-      new_pos[2] = cell_movements[idx][2];
-      cell->UpdatePosition(new_pos);
-      if (param->bound_space_) {
-        ApplyBoundingBox(so, param->min_bound_, param->max_bound_);
-      }
-    });
+    
+    Bar b(cell_movements, param->bound_space_, param->min_bound_, param->max_bound_);
+    rm->ApplyOnAllElementsParallelDynamic(1000, b);
   }
 
  private:
