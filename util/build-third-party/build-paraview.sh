@@ -42,7 +42,7 @@ DEST_DIR=$BDM_PROJECT_DIR/build
 mkdir -p $DEST_DIR
 EchoNewStep "Start building ParaView $PV_VERSION. Result will be stored in $DEST_DIR"
 # working dir
-WORKING_DIR=/data/ahhesam/bdm-build-third-party
+WORKING_DIR=~/bdm-build-third-party
 mkdir -p $WORKING_DIR || true
 cd $WORKING_DIR
 
@@ -71,31 +71,31 @@ cmake \
   -DUSE_SYSTEM_mpi:BOOL=ON \
   ../paraview-superbuild
 
-# ## Compile and install
-# make -j$(CPUCount) install
+## Compile and install
+make -j$(CPUCount) install
 
-# # patch and bundle
-# # TODO(ahmad): Patch is probably not necessary anymore after relying on rpath
-# # on OS X. To be investigated.
-# if [ `uname` = "Darwin" ]; then
-#   ## Patch vtkkwProcessXML-pv5.5
-#   # make install does not set the rpath correctly on OSX
-#   install_name_tool -add_rpath "@loader_path/../../qt/lib" bin/vtkkwProcessXML-pv5.5
-#   install_name_tool -add_rpath "@loader_path/../../../../../qt/lib" bin/vtkkwProcessXML-pv5.5
-#   install_name_tool -add_rpath "@loader_path/../lib" bin/vtkkwProcessXML-pv5.5
-# fi
+# patch and bundle
+# TODO(ahmad): Patch is probably not necessary anymore after relying on rpath
+# on OS X. To be investigated.
+if [ `uname` = "Darwin" ]; then
+  ## Patch vtkkwProcessXML-pv5.5
+  # make install does not set the rpath correctly on OSX
+  install_name_tool -add_rpath "@loader_path/../../qt/lib" bin/vtkkwProcessXML-pv5.5
+  install_name_tool -add_rpath "@loader_path/../../../../../qt/lib" bin/vtkkwProcessXML-pv5.5
+  install_name_tool -add_rpath "@loader_path/../lib" bin/vtkkwProcessXML-pv5.5
+fi
 
-# cd install
+cd install
 
-# ## tar the install directory
-# tar -zcf paraview-$PV_VERSION.tar.gz *
+## tar the install directory
+tar -zcf paraview-$PV_VERSION.tar.gz *
 
-# # After untarring the directory tree should like like this:
-# # paraview
-# #   |-- bin
-# #   |-- include
-# #   |-- lib
-# #   |-- share
+# After untarring the directory tree should like like this:
+# paraview
+#   |-- bin
+#   |-- include
+#   |-- lib
+#   |-- share
 
-# # Step 5: cp to destination directory
-# cp paraview-$PV_VERSION.tar.gz $DEST_DIR
+# Step 5: cp to destination directory
+cp paraview-$PV_VERSION.tar.gz $DEST_DIR

@@ -59,7 +59,7 @@ EOF'
     . /etc/profile.d/modules.sh
     module load mpi
 
-    sudo yum install -y libXt-devel freeglut3-devel
+    sudo yum install -y libXt-devel freeglut3-devel chrpath
 
     sudo yum install -y centos-release-scl epel-release
     sudo yum -y install https://centos7.iuscommunity.org/ius-release.rpm || true
@@ -116,7 +116,7 @@ EOF'
       libreadline-dev libsqlite3-dev wget curl llvm \
       xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
 
-    sudo apt install -y libxt-dev freeglut3-dev
+    sudo apt install -y libxt-dev freeglut3-dev chrpath
 
     # libroadrunner
     sudo apt-get install -y llvm-6.0 llvm-6.0-dev llvm-6.0-runtime

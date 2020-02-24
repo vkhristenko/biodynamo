@@ -241,8 +241,7 @@ endif()
 
 if(paraview)
     # Check the first time if ParaView exists in the system.
-    find_package(ParaView 5.3 REQUIRED OPTIONAL_COMPONENTS vtkPVPythonCatalyst
-            vtkPVVTKExtensionsDefault vtkPVServerManagerRendering
+    find_package(ParaView 5.3 CONFIG COMPONENTS Catalyst PythonCatalyst VTKExtensionsIOCore
             PATHS ${CMAKE_THIRD_PARTY_DIR}/paraview)
 
     # Check if ParaView was found in the system. If that's not the case then we will proceed
@@ -251,8 +250,7 @@ if(paraview)
       include(external/ParaView)
 
       # We run again the find_package command such to find correctly the location of ParaView
-      find_package(ParaView 5.3 OPTIONAL_COMPONENTS vtkPVPythonCatalyst
-              vtkPVVTKExtensionsDefault vtkPVServerManagerRendering
+      find_package(ParaView 5.3 CONFIG COMPONENTS Catalyst PythonCatalyst VTKExtensionsIOCore
               PATHS ${CMAKE_THIRD_PARTY_DIR}/paraview)
     endif()
 
@@ -393,7 +391,7 @@ if(paraview)
   file(GLOB_RECURSE PV_HEADERS "${CMAKE_SOURCE_DIR}/src/core/visualization/paraview/*.h")
   file(GLOB_RECURSE PV_SOURCES "${CMAKE_SOURCE_DIR}/src/core/visualization/paraview/*.cc")
 
-  set(REQUIRED_PARAVIEW_LIBRARIES "vtkCommonCore;vtkPVPythonCatalyst;vtkIOParallelXML;vtkPVVTKExtensionsDefault;vtkPVServerManagerRendering")
+  set(REQUIRED_PARAVIEW_LIBRARIES ${ParaView_LIBRARIES})
   build_shared_library(VisualizationAdaptor
                     SOURCES ${PV_SOURCES}
                     HEADERS ${PV_HEADERS}

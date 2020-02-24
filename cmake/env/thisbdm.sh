@@ -90,7 +90,7 @@ fi
 
 if [ -n "${old_bdmsys_base}" ] ; then
    if [ -n "${ParaView_DIR}" ]; then
-      drop_bdm_from_path "$ParaView_DIR" "${old_bdmsys_base}/third_party/paraview/lib/cmake/paraview-5.6"
+      drop_bdm_from_path "$ParaView_DIR" "${old_bdmsys_base}/third_party/paraview/lib/cmake/paraview-5.8"
       ParaView_DIR=$newpath
    fi
    if [ -n "${ParaView_LIB_DIR}" ]; then
@@ -109,24 +109,12 @@ if [ -n "${old_bdmsys_base}" ] ; then
       drop_bdm_from_path "$PATH" "${old_bdmsys_base}/third_party/paraview/bin"
       PATH=$newpath
    fi
-   if [ -n "${Qt5_DIR}" ]; then
-      drop_bdm_from_path "$Qt5_DIR" "${old_bdmsys_base}/third_party/qt/lib/cmake/Qt5"
-      Qt5_DIR=$newpath
-   fi
-   if [ -n "${QT_QPA_PLATFORM_PLUGIN_PATH}" ]; then
-      drop_bdm_from_path "$QT_QPA_PLATFORM_PLUGIN_PATH" "${old_bdmsys_base}/third_party/qt/plugins"
-      QT_QPA_PLATFORM_PLUGIN_PATH=$newpath
-   fi
    if [ -n "${DYLD_LIBRARY_PATH}" ]; then
       drop_bdm_from_path "$DYLD_LIBRARY_PATH" "${old_bdmsys_base}/third_party/paraview/lib"
-      DYLD_LIBRARY_PATH=$newpath
-      drop_bdm_from_path "$DYLD_LIBRARY_PATH" "${old_bdmsys_base}/third_party/qt/lib"
       DYLD_LIBRARY_PATH=$newpath
    fi
    if [ -n "${LD_LIBRARY_PATH}" ]; then
       drop_bdm_from_path "$LD_LIBRARY_PATH" "${old_bdmsys_base}/third_party/paraview/lib"
-      LD_LIBRARY_PATH=$newpath
-      drop_bdm_from_path "$LD_LIBRARY_PATH" "${old_bdmsys_base}/third_party/qt/lib"
       LD_LIBRARY_PATH=$newpath
    fi
 
@@ -268,12 +256,6 @@ fi
 
 # We don't add the ParaView site-packages path to PYTHONPATH, because pip in the
 # pyenv environment will not function anymore: ModuleNotFoundError: No module named 'pip._internal'
-unset -f paraview || true
-function paraview {
-  PYTHONPATH="${ParaView_DIR}/lib/python2.7/site-packages":$PYTHONPATH ${ParaView_DIR}/bin/paraview $@
-}
-export -f paraview
-
 unset -f pvpython || true
 function pvpython {
   PYTHONPATH="${ParaView_DIR}/lib/python2.7/site-packages":$PYTHONPATH ${ParaView_DIR}/bin/pvpython $@
@@ -298,38 +280,6 @@ else
    DYLD_LIBRARY_PATH="${ParaView_LIB_DIR}":$DYLD_LIBRARY_PATH; export DYLD_LIBRARY_PATH
 fi
 ########
-
-#### Qt5 Specific Configurations ####
-if [ -z ${Qt5_DIR} ]; then
-    Qt5_DIR=${BDMSYS}/third_party/qt; export Qt5_DIR
-    if ! [ -d $Qt5_DIR ]; then
-        echo "We are unable to find Qt! Please make sure it is installed in your system!"
-        echo "You can specify manually its location by executing 'export Qt5_DIR=path/to/qt'"
-        echo "together with 'export ParaView_DIR=path/to/paraview' before running cmake."
-        echo "Sourcing BioDynaMo env failed!"
-        return
-    fi
-fi
-
-if [ -z "${QT_QPA_PLATFORM_PLUGIN_PATH}" ]; then
-   QT_QPA_PLATFORM_PLUGIN_PATH="${Qt5_DIR}/plugins"; export QT_QPA_PLATFORM_PLUGIN_PATH
-else
-   QT_QPA_PLATFORM_PLUGIN_PATH="${Qt5_DIR}/plugins":$QT_QPA_PLATFORM_PLUGIN_PATH; export QT_QPA_PLATFORM_PLUGIN_PATH
-fi
-
-if [ -z "${LD_LIBRARY_PATH}" ]; then
-   LD_LIBRARY_PATH="${Qt5_DIR}/lib"; export LD_LIBRARY_PATH
-else
-   LD_LIBRARY_PATH="${Qt5_DIR}/lib":$LD_LIBRARY_PATH; export LD_LIBRARY_PATH
-fi
-
-if [ -z "${DYLD_LIBRARY_PATH}" ]; then
-   DYLD_LIBRARY_PATH="${Qt5_DIR}/lib"; export DYLD_LIBRARY_PATH
-else
-   DYLD_LIBRARY_PATH="${Qt5_DIR}/lib":$DYLD_LIBRARY_PATH; export DYLD_LIBRARY_PATH
-fi
-
-#######
 
 # OpenMP
 export OMP_PROC_BIND=true
