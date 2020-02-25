@@ -51,7 +51,6 @@ std::atomic<uint64_t> ParaviewAdaptor::counter_;
 
 ParaviewAdaptor::ParaviewAdaptor() {
   counter_++;
-  // auto* test = new ParaviewAdaptor::ParaviewImpl();
   impl_ = std::unique_ptr<ParaviewAdaptor::ParaviewImpl>(
       new ParaviewAdaptor::ParaviewImpl());
 }
@@ -136,7 +135,7 @@ void ParaviewAdaptor::Initialize() {
           std::string("/visualization/paraview/simple_pipeline.py");
       pipeline->Initialize(python_script.c_str());
       impl_->g_processor_->AddPipeline(pipeline.GetPointer());
-    } else if (!exclusive_export_viz_) {
+    } else {
       impl_->pipeline_ = new InSituPipeline();
       impl_->g_processor_->AddPipeline(impl_->pipeline_);
     }

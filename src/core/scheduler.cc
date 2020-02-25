@@ -28,6 +28,7 @@
 #include "core/simulation_backup.h"
 #include "core/util/log.h"
 #include "core/visualization/root/adaptor.h"
+#include "core/visualization/paraview/adaptor.h"
 #include "core/visualization/visualization_adaptor.h"
 
 namespace bdm {
@@ -64,7 +65,7 @@ Scheduler::Scheduler() {
   if (backup_->RestoreEnabled()) {
     restore_point_ = backup_->GetSimulationStepsFromBackup();
   }
-  visualization_ = VisualizationAdaptor::Create(param->visualization_engine_);
+  visualization_ = new ParaviewAdaptor();
   root_visualization_ = new RootAdaptor();
   bound_space_ = new BoundSpace();
   displacement_ = new DisplacementOp();

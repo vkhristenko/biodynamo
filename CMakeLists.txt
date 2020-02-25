@@ -147,11 +147,8 @@ if (DEFINED ENV{PYENV_ROOT})
 else()
   set(Python_ROOT_DIR "$ENV{HOME}/.pyenv/versions/3.6.9" CACHE PATH "The path to the Python 3.6.9 installation of PyEnv.")
 endif()
-if(EXISTS "${Python_ROOT_DIR}/bin/python")
-  set(PYTHON_FOUND TRUE)
-  set(PYTHON_EXECUTABLE "${Python_ROOT_DIR}/bin/python")
-  message(STATUS "Python executable found at: ${PYTHON_EXECUTABLE}")
-else()
+find_package(Python 3.6.9 COMPONENTS Interpreter Development)
+if(NOT Python_FOUND)
   message(FATAL_ERROR "We did not find the Python 3 interpreter from PyEnv. "
     "Please run ./prerequisites.sh again before calling cmake. The Python 3.6.9 "
     "interpreter is required in order to successfully use BioDynaMo."
@@ -255,7 +252,6 @@ if(paraview)
     endif()
 
     # Add several ParaView related options
-    message("ParaView_LIBRARIES = ${ParaView_LIBRARIES}")
     include_directories(${ParaView_PREFIX_PATH}/include/paraview-5.8)
     add_definitions("-DUSE_PARAVIEW")
 endif()
@@ -390,14 +386,16 @@ if(paraview)
   # Find paraview-related sources and headers for plugin generation
   file(GLOB_RECURSE PV_HEADERS "${CMAKE_SOURCE_DIR}/src/core/visualization/paraview/*.h")
   file(GLOB_RECURSE PV_SOURCES "${CMAKE_SOURCE_DIR}/src/core/visualization/paraview/*.cc")
-
-  set(REQUIRED_PARAVIEW_LIBRARIES ${ParaView_LIBRARIES})
+  
+  set(REQUIRED_PARAVIEW_LIBRARIES "${Python_LIBRARIES};${ParaView_LIBRARIES}")
   build_shared_library(VisualizationAdaptor
                     SOURCES ${PV_SOURCES}
                     HEADERS ${PV_HEADERS}
                     LIBRARIES ${REQUIRED_PARAVIEW_LIBRARIES} biodynamo
                     PLUGIN "TRUE")
   set(REQUIRED_PARAVIEW_LIBRARIES "${REQUIRED_PARAVIEW_LIBRARIES};VisualizationAdaptor")
+  SET_TARGET_PROPERTIES(VisualizationAdaptor PROPERTIES LINK_FLAGS "-Wl,--no-as-needed")
+  set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} ${REQUIRED_PARAVIEW_LIBRARIES})
 else()
   # If paraview is disabled, linking the biodynamo-unit-tests failes due to
   # an undefined tbb reference error. Adding this library fixed this

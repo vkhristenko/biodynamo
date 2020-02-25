@@ -151,7 +151,7 @@ if (NUMA_FOUND)
 endif()
 
 if(paraview)
-  find_package(ParaView 5.3 CONFIG COMPONENTS PythonCatalyst)
+  find_package(ParaView 5.3 CONFIG COMPONENTS Catalyst PythonCatalyst VTKExtensionsIOCore)
   if(${ParaView_FOUND})
     message(STATUS "Found ParaView")
   else()
@@ -249,6 +249,7 @@ include(${ROOT_USE_FILE})
 fix_rootcling_omp_issue()
 
 set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} biodynamo ${ROOT_LIBRARIES})
+set(BDM_REQUIRED_LIBRARIES ${BDM_REQUIRED_LIBRARIES} VisualizationAdaptor)
 
 include_directories("$ENV{BDM_CMAKE_DIR}/../../include")
 link_directories("$ENV{BDM_CMAKE_DIR}/../../lib")

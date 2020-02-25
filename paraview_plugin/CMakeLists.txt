@@ -13,7 +13,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 set("_paraview_plugin_default_${CMAKE_PROJECT_NAME}" ON)
 paraview_plugin_scan(
   PLUGIN_FILES      "${CMAKE_CURRENT_LIST_DIR}/Plugin/paraview.plugin"
-  PROVIDES_PLUGINS  plugins)
+  PROVIDES_PLUGINS  plugins
+  REQUIRES_MODULES  required_modules)
+
+foreach (module IN LISTS required_modules)
+  if (NOT TARGET "${module}")
+    message("Missing required module: ${module}")
+    return ()
+  endif ()
+endforeach ()
 
 paraview_plugin_build(
   HEADERS_DESTINATION "include"

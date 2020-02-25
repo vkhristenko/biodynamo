@@ -35,4 +35,4 @@ for f in .ninja*; do
 done
 
 # remove file created in third_party/paraview/lib/cmake/paraview-5.5/Modules/
-find . -name BDMGlyphFilterHierarchy.txt -exec rm -f {} \;
+find . -name BDMGlyphHierarchy.txt -exec rm -f {} \;
