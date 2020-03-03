@@ -189,9 +189,9 @@ class ResourceManager {
 
   /// Returns the total number of simulation objects if numa_node == -1
   /// Otherwise the number of sim_objects in the specific numa node
-  ElementIdx_t GetNumSimObjects(int numa_node = -1) const {
+  SoHandle::ElementIdx_t GetNumSimObjects(int numa_node = -1) const {
     if (numa_node == -1) {
-      ElementIdx_t num_so = 0;
+      SoHandle::ElementIdx_t num_so = 0;
       for (auto& numa_sos : sim_objects_) {
         num_so += numa_sos.size();
       }

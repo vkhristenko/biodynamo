@@ -456,7 +456,7 @@ if (CUDA_FOUND)
     set(CUDA_HOST_COMPILER "/usr/bin/")
     set(NVCCFLAGS "--compiler-bindir ${CUDA_HOST_COMPILER}")
     if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -g -G -O1" )
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -g -G -O1 -lineinfo" )
     endif()
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 
